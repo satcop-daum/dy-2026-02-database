@@ -1,0 +1,25 @@
+
+# db instance, db user, db password setting
+
+-- 1. 데이터베이스 생성
+create database shop_db;
+
+-- 2. 사용자 생성 및 비밀번호 설정 (CREATE USER에서 처리)
+create user 'shop_user007'@'localhost' identified by 'dy';
+create user 'shop_user007'@'%' identified by 'dy';
+
+-- 3. 권한 부여 (IDENTIFIED BY 구문 제거)
+grant all privileges on shop_db.* to 'shop_user007'@'localhost' ;
+grant all privileges on shop_db.* to 'shop_user007'@'%';
+
+-- 4. 권한 적용
+flush privileges;
+
+
+
+################################################################################
+db host: localhost
+db port: 3308
+db schema: shop_db
+db user: shop_user007
+db password: dy
