@@ -1,0 +1,264 @@
+-- ==============================================================================
+-- KOBIS 테이블 및 컬럼 코멘트 업데이트 스크립트
+-- ==============================================================================
+
+-- 1. kobis_common_code (공통코드)
+ALTER TABLE `kobis_common_code` COMMENT = 'KOBIS 공통코드';
+ALTER TABLE `kobis_common_code`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `full_cd` VARCHAR(20) NOT NULL COMMENT '공통코드',
+    MODIFY COLUMN `kor_nm` VARCHAR(255) DEFAULT NULL COMMENT '코드명(국문)',
+    MODIFY COLUMN `eng_nm` VARCHAR(255) DEFAULT NULL COMMENT '코드명(영문)',
+    MODIFY COLUMN `parent_cd` VARCHAR(20) DEFAULT NULL COMMENT '상위 공통코드',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 2. kobis_company (영화사 목록)
+ALTER TABLE `kobis_company` COMMENT = '영화사 목록';
+ALTER TABLE `kobis_company`
+    MODIFY COLUMN `company_cd` VARCHAR(20) NOT NULL COMMENT '영화사 코드',
+    MODIFY COLUMN `company_nm` VARCHAR(255) DEFAULT NULL COMMENT '영화사명(국문)',
+    MODIFY COLUMN `company_nm_en` VARCHAR(255) DEFAULT NULL COMMENT '영화사명(영문)',
+    MODIFY COLUMN `company_part_names` VARCHAR(255) DEFAULT NULL COMMENT '영화사 분류명(참여분야)',
+    MODIFY COLUMN `ceo_nm` VARCHAR(255) DEFAULT NULL COMMENT '대표자명',
+    MODIFY COLUMN `filmo_names` TEXT DEFAULT NULL COMMENT '필모리스트(관련 영화 목록)',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 3. kobis_company_detail (영화사 상세정보)
+ALTER TABLE `kobis_company_detail` COMMENT = '영화사 상세정보';
+ALTER TABLE `kobis_company_detail`
+    MODIFY COLUMN `company_cd` VARCHAR(20) NOT NULL COMMENT '영화사 코드',
+    MODIFY COLUMN `company_nm` VARCHAR(255) DEFAULT NULL COMMENT '영화사명(국문)',
+    MODIFY COLUMN `company_nm_en` VARCHAR(255) DEFAULT NULL COMMENT '영화사명(영문)',
+    MODIFY COLUMN `ceo_nm` VARCHAR(255) DEFAULT NULL COMMENT '대표자명',
+    MODIFY COLUMN `parts` VARCHAR(500) DEFAULT NULL COMMENT '참여분야 목록',
+    MODIFY COLUMN `filmo_count` INT DEFAULT 0 COMMENT '필모그래피 개수',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 4. kobis_company_filmo (영화사 필모그래피)
+ALTER TABLE `kobis_company_filmo` COMMENT = '영화사 필모그래피';
+ALTER TABLE `kobis_company_filmo`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `company_cd` VARCHAR(20) NOT NULL COMMENT '영화사 코드',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '참여 영화코드',
+    MODIFY COLUMN `movie_nm` VARCHAR(255) DEFAULT NULL COMMENT '참여 영화명',
+    MODIFY COLUMN `company_part_nm` VARCHAR(100) DEFAULT NULL COMMENT '참여분야',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 5. kobis_company_part (영화사 참여분야)
+ALTER TABLE `kobis_company_part` COMMENT = '영화사 참여분야';
+ALTER TABLE `kobis_company_part`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `company_cd` VARCHAR(20) NOT NULL COMMENT '영화사 코드',
+    MODIFY COLUMN `company_part_nm` VARCHAR(100) NOT NULL COMMENT '영화사 분류명(참여분야)',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 6. kobis_daily_boxoffice (일별 박스오피스)
+ALTER TABLE `kobis_daily_boxoffice` COMMENT = '일별 박스오피스';
+ALTER TABLE `kobis_daily_boxoffice`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `target_date` CHAR(8) NOT NULL COMMENT '박스오피스 조회일자(YYYYMMDD)',
+    MODIFY COLUMN `rank_no` INT DEFAULT NULL COMMENT '해당일자의 박스오피스 순위',
+    MODIFY COLUMN `rank_inten` INT DEFAULT NULL COMMENT '전일대비 순위의 증감분',
+    MODIFY COLUMN `rank_old_and_new` VARCHAR(10) DEFAULT NULL COMMENT '랭킹에 신규진입여부(OLD/NEW)',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `movie_nm` VARCHAR(255) DEFAULT NULL COMMENT '영화명(국문)',
+    MODIFY COLUMN `open_dt` DATE DEFAULT NULL COMMENT '영화 개봉일',
+    MODIFY COLUMN `sales_amt` BIGINT DEFAULT NULL COMMENT '해당일의 매출액',
+    MODIFY COLUMN `sales_share` DECIMAL(10, 2) DEFAULT NULL COMMENT '해당일자 상영작의 매출총액 대비 해당 영화의 매출비율',
+    MODIFY COLUMN `sales_inten` BIGINT DEFAULT NULL COMMENT '전일 대비 매출액 증감분',
+    MODIFY COLUMN `sales_change` DECIMAL(10, 2) DEFAULT NULL COMMENT '전일 대비 매출액 증감 비율',
+    MODIFY COLUMN `sales_acc` BIGINT DEFAULT NULL COMMENT '누적매출액',
+    MODIFY COLUMN `audi_cnt` BIGINT DEFAULT NULL COMMENT '해당일의 관객수',
+    MODIFY COLUMN `audi_inten` BIGINT DEFAULT NULL COMMENT '전일 대비 관객수 증감분',
+    MODIFY COLUMN `audi_change` DECIMAL(10, 2) DEFAULT NULL COMMENT '전일 대비 관객수 증감 비율',
+    MODIFY COLUMN `audi_acc` BIGINT DEFAULT NULL COMMENT '누적관객수',
+    MODIFY COLUMN `scrn_cnt` INT DEFAULT NULL COMMENT '해당일자에 해당영화가 상영된 스크린수',
+    MODIFY COLUMN `show_cnt` INT DEFAULT NULL COMMENT '해당일자에 해당영화가 상영된 횟수',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 7. kobis_movie_info (영화목록 정보)
+ALTER TABLE `kobis_movie_info` COMMENT = '영화목록 정보';
+ALTER TABLE `kobis_movie_info`
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `movie_nm` VARCHAR(500) DEFAULT NULL COMMENT '영화명(국문)',
+    MODIFY COLUMN `movie_nm_en` VARCHAR(500) DEFAULT NULL COMMENT '영화명(영문)',
+    MODIFY COLUMN `prdt_year` VARCHAR(20) DEFAULT NULL COMMENT '제작연도',
+    MODIFY COLUMN `open_dt` VARCHAR(20) DEFAULT NULL COMMENT '개봉일',
+    MODIFY COLUMN `type_nm` VARCHAR(100) DEFAULT NULL COMMENT '영화유형',
+    MODIFY COLUMN `prdt_stat_nm` VARCHAR(100) DEFAULT NULL COMMENT '제작상태',
+    MODIFY COLUMN `nation_alt` VARCHAR(500) DEFAULT NULL COMMENT '제작국가(전체)',
+    MODIFY COLUMN `genre_alt` VARCHAR(500) DEFAULT NULL COMMENT '영화장르(전체)',
+    MODIFY COLUMN `rep_nation_nm` VARCHAR(100) DEFAULT NULL COMMENT '대표 제작국가명',
+    MODIFY COLUMN `rep_genre_nm` VARCHAR(100) DEFAULT NULL COMMENT '대표 장르명',
+    MODIFY COLUMN `directors` TEXT DEFAULT NULL COMMENT '영화감독',
+    MODIFY COLUMN `people_nm` TEXT DEFAULT NULL COMMENT '영화감독명',
+    MODIFY COLUMN `companys` TEXT DEFAULT NULL COMMENT '제작사',
+    MODIFY COLUMN `company_cd` TEXT DEFAULT NULL COMMENT '제작사 코드',
+    MODIFY COLUMN `company_nm` TEXT DEFAULT NULL COMMENT '제작사명',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 8. kobis_people (영화인목록)
+ALTER TABLE `kobis_people` COMMENT = '영화인목록';
+ALTER TABLE `kobis_people`
+    MODIFY COLUMN `people_cd` VARCHAR(20) NOT NULL COMMENT '영화인 코드',
+    MODIFY COLUMN `people_nm` VARCHAR(255) DEFAULT NULL COMMENT '영화인명',
+    MODIFY COLUMN `people_nm_en` VARCHAR(255) DEFAULT NULL COMMENT '영화인명(영문)',
+    MODIFY COLUMN `rep_role_nm` VARCHAR(100) DEFAULT NULL COMMENT '분야',
+    MODIFY COLUMN `filmo_names` TEXT DEFAULT NULL COMMENT '필모리스트',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 9. kobis_people_detail (영화인 상세정보)
+ALTER TABLE `kobis_people_detail` COMMENT = '영화인 상세정보';
+ALTER TABLE `kobis_people_detail`
+    MODIFY COLUMN `people_cd` VARCHAR(20) NOT NULL COMMENT '영화인 코드',
+    MODIFY COLUMN `people_nm` VARCHAR(255) DEFAULT NULL COMMENT '영화인명',
+    MODIFY COLUMN `people_nm_en` VARCHAR(255) DEFAULT NULL COMMENT '영화인명(영문)',
+    MODIFY COLUMN `sex` VARCHAR(20) DEFAULT NULL COMMENT '성별',
+    MODIFY COLUMN `rep_role_nm` VARCHAR(100) DEFAULT NULL COMMENT '영화인 분류명',
+    MODIFY COLUMN `homepages` TEXT DEFAULT NULL COMMENT '관련 URL',
+    MODIFY COLUMN `filmo_count` INT DEFAULT 0 COMMENT '필모그래피 개수',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 10. kobis_people_filmo (영화인 필모그래피)
+ALTER TABLE `kobis_people_filmo` COMMENT = '영화인 필모그래피';
+ALTER TABLE `kobis_people_filmo`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `people_cd` VARCHAR(20) NOT NULL COMMENT '영화인 코드',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '참여 영화코드',
+    MODIFY COLUMN `movie_nm` VARCHAR(500) DEFAULT NULL COMMENT '참여 영화명',
+    MODIFY COLUMN `movie_part_nm` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '참여분야',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 11. kobis_movie_detail (영화 상세정보)
+ALTER TABLE `kobis_movie_detail` COMMENT = '영화 상세정보';
+ALTER TABLE `kobis_movie_detail`
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `movie_nm` VARCHAR(500) DEFAULT NULL COMMENT '영화명(국문)',
+    MODIFY COLUMN `movie_nm_en` VARCHAR(500) DEFAULT NULL COMMENT '영화명(영문)',
+    MODIFY COLUMN `movie_nm_og` VARCHAR(500) DEFAULT NULL COMMENT '영화명(원문)',
+    MODIFY COLUMN `prdt_year` VARCHAR(20) DEFAULT NULL COMMENT '제작연도',
+    MODIFY COLUMN `show_tm` VARCHAR(20) DEFAULT NULL COMMENT '상영시간',
+    MODIFY COLUMN `open_dt` VARCHAR(20) DEFAULT NULL COMMENT '개봉연도',
+    MODIFY COLUMN `prdt_stat_nm` VARCHAR(100) DEFAULT NULL COMMENT '제작상태명',
+    MODIFY COLUMN `type_nm` VARCHAR(100) DEFAULT NULL COMMENT '영화유형명',
+    MODIFY COLUMN `nations` TEXT DEFAULT NULL COMMENT '제작국가(전체)',
+    MODIFY COLUMN `genres` TEXT DEFAULT NULL COMMENT '장르(전체)',
+    MODIFY COLUMN `directors` TEXT DEFAULT NULL COMMENT '감독명(전체)',
+    MODIFY COLUMN `actors` TEXT DEFAULT NULL COMMENT '배우명(전체)',
+    MODIFY COLUMN `show_types` TEXT DEFAULT NULL COMMENT '상영형태(전체)',
+    MODIFY COLUMN `audits` TEXT DEFAULT NULL COMMENT '심의정보(전체)',
+    MODIFY COLUMN `companys` TEXT DEFAULT NULL COMMENT '참여 영화사(전체)',
+    MODIFY COLUMN `staffs` TEXT DEFAULT NULL COMMENT '스텝(전체)',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 12. kobis_movie_director (영화 감독 정보)
+ALTER TABLE `kobis_movie_director` COMMENT = '영화 감독 정보';
+ALTER TABLE `kobis_movie_director`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `people_nm` VARCHAR(255) DEFAULT NULL COMMENT '감독명',
+    MODIFY COLUMN `people_nm_en` VARCHAR(255) DEFAULT NULL COMMENT '감독명(영문)',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 13. kobis_movie_actor (영화 배우 정보)
+ALTER TABLE `kobis_movie_actor` COMMENT = '영화 배우 정보';
+ALTER TABLE `kobis_movie_actor`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `people_nm` VARCHAR(255) DEFAULT NULL COMMENT '배우명',
+    MODIFY COLUMN `people_nm_en` VARCHAR(255) DEFAULT NULL COMMENT '배우명(영문)',
+    MODIFY COLUMN `cast` VARCHAR(255) DEFAULT NULL COMMENT '배역명',
+    MODIFY COLUMN `cast_en` VARCHAR(255) DEFAULT NULL COMMENT '배역명(영문)',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 14. kobis_movie_company (영화 참여 영화사 정보)
+ALTER TABLE `kobis_movie_company` COMMENT = '영화 참여 영화사 정보';
+ALTER TABLE `kobis_movie_company`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `company_cd` VARCHAR(20) DEFAULT NULL COMMENT '참여 영화사 코드',
+    MODIFY COLUMN `company_nm` VARCHAR(500) DEFAULT NULL COMMENT '참여 영화사명',
+    MODIFY COLUMN `company_nm_en` VARCHAR(500) DEFAULT NULL COMMENT '참여 영화사명(영문)',
+    MODIFY COLUMN `company_part_nm` VARCHAR(100) DEFAULT NULL COMMENT '참여 영화사 분야명',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 15. kobis_movie_audit (영화 심의 정보)
+ALTER TABLE `kobis_movie_audit` COMMENT = '영화 심의 정보';
+ALTER TABLE `kobis_movie_audit`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `audit_no` VARCHAR(100) DEFAULT NULL COMMENT '심의번호',
+    MODIFY COLUMN `watch_grade_nm` VARCHAR(100) DEFAULT NULL COMMENT '관람등급 명칭',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 16. kobis_movie_staff (영화 스텝 정보)
+ALTER TABLE `kobis_movie_staff` COMMENT = '영화 스텝 정보';
+ALTER TABLE `kobis_movie_staff`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `people_nm` VARCHAR(255) DEFAULT NULL COMMENT '스텝명',
+    MODIFY COLUMN `people_nm_en` VARCHAR(255) DEFAULT NULL COMMENT '스텝명(영문)',
+    MODIFY COLUMN `staff_role_nm` VARCHAR(100) DEFAULT NULL COMMENT '스텝역할명',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 17. kobis_movie_show_type (영화 상영형태 정보)
+ALTER TABLE `kobis_movie_show_type` COMMENT = '영화 상영형태 정보';
+ALTER TABLE `kobis_movie_show_type`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `show_type_group_nm` VARCHAR(100) DEFAULT NULL COMMENT '상영형태 구분',
+    MODIFY COLUMN `show_type_nm` VARCHAR(100) DEFAULT NULL COMMENT '상영형태명',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 18. kobis_movie_nation (영화 제작국가 정보)
+ALTER TABLE `kobis_movie_nation` COMMENT = '영화 제작국가 정보';
+ALTER TABLE `kobis_movie_nation`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `nation_nm` VARCHAR(100) DEFAULT NULL COMMENT '제작국가명',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';
+
+
+-- 19. kobis_movie_genre (영화 장르 정보)
+ALTER TABLE `kobis_movie_genre` COMMENT = '영화 장르 정보';
+ALTER TABLE `kobis_movie_genre`
+    MODIFY COLUMN `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '고유 식별자',
+    MODIFY COLUMN `movie_cd` VARCHAR(20) NOT NULL COMMENT '영화코드',
+    MODIFY COLUMN `genre_nm` VARCHAR(100) DEFAULT NULL COMMENT '장르명',
+    MODIFY COLUMN `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    MODIFY COLUMN `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시';

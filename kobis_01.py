@@ -1,8 +1,9 @@
 
 import json
+import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import mysql.connector
 
@@ -29,16 +30,7 @@ DB_CONFIG = {
 }
 
 
-def get_target_date():
-    """
-    KOBIS 일별 박스오피스는 보통 어제 날짜 기준으로 조회합니다.
-    반환 형식: YYYYMMDD
-    """
-    yesterday = datetime.now() - timedelta(days=1)
-    return yesterday.strftime("%Y%m%d")
-
-
-def fetch_kobis_daily_boxoffice(target_date):
+def fetch_kobis_daily_boxoffice(target_date, max_retries=3):
     """
     KOBIS API에서 일별 박스오피스 데이터를 가져옵니다.
     """
@@ -51,14 +43,27 @@ def fetch_kobis_daily_boxoffice(target_date):
     query_string = urllib.parse.urlencode(params)
     request_url = f"{KOBIS_API_URL}?{query_string}"
 
-    print(f"KOBIS API 요청 URL: {request_url}")
+    print(f"[{target_date}] KOBIS API 요청 URL: {request_url}")
 
-    with urllib.request.urlopen(request_url) as response:
-        response_body = response.read().decode("utf-8")
+    for attempt in range(1, max_retries + 1):
+        try:
+            req = urllib.request.Request(
+                request_url,
+                headers={"User-Agent": "Mozilla/5.0"}
+            )
+            with urllib.request.urlopen(req, timeout=15) as response:
+                response_body = response.read().decode("utf-8")
 
-    data = json.loads(response_body)
+            data = json.loads(response_body)
+            return data
+        except Exception as e:
+            print(f"[{target_date}] API 요청 중 오류 발생 (시도 {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                time.sleep(1)
+            else:
+                return {}
 
-    return data
+    return {}
 
 
 def create_table_if_not_exists(connection):
@@ -68,35 +73,48 @@ def create_table_if_not_exists(connection):
 
     sql = """
     CREATE TABLE IF NOT EXISTS kobis_daily_boxoffice (
-        id BIGINT AUTO_INCREMENT PRIMARY KEY,
-        target_date CHAR(8) NOT NULL,
-        rank_no INT,
-        rank_inten INT,
-        rank_old_and_new VARCHAR(10),
-        movie_cd VARCHAR(20) NOT NULL,
-        movie_nm VARCHAR(255),
-        open_dt DATE NULL,
-        sales_amt BIGINT,
-        sales_share DECIMAL(10, 2),
-        sales_inten BIGINT,
-        sales_change DECIMAL(10, 2),
-        sales_acc BIGINT,
-        audi_cnt BIGINT,
-        audi_inten BIGINT,
-        audi_change DECIMAL(10, 2),
-        audi_acc BIGINT,
-        scrn_cnt INT,
-        show_cnt INT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 식별자',
+        target_date CHAR(8) NOT NULL COMMENT '대상 상영일자',
+        rank_no INT COMMENT '해당일자의 박스오피스 순위',
+        rank_inten INT COMMENT '전일대비 순위의 증감분',
+        rank_old_and_new VARCHAR(10) COMMENT '랭킹에 신규진입여부 (OLD : 기존, NEW : 신규)',
+        movie_cd VARCHAR(20) NOT NULL COMMENT '영화의 대표코드',
+        movie_nm VARCHAR(255) COMMENT '영화명(국문)',
+        open_dt DATE NULL COMMENT '영화의 개봉일',
+        sales_amt BIGINT COMMENT '해당일의 매출액',
+        sales_share DECIMAL(10, 2) COMMENT '해당일자 상영작의 매출총액 대비 해당 영화의 매출비율',
+        sales_inten BIGINT COMMENT '전일 대비 매출액 증감분',
+        sales_change DECIMAL(10, 2) COMMENT '전일 대비 매출액 증감 비율',
+        sales_acc BIGINT COMMENT '누적매출액',
+        audi_cnt BIGINT COMMENT '해당일의 관객수',
+        audi_inten BIGINT COMMENT '전일 대비 관객수 증감분',
+        audi_change DECIMAL(10, 2) COMMENT '전일 대비 관객수 증감 비율',
+        audi_acc BIGINT COMMENT '누적관객수',
+        scrn_cnt INT COMMENT '해당일자에 해당영화가 상영된 스크린수',
+        show_cnt INT COMMENT '해당일자에 해당영화가 상영된 횟수',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
         UNIQUE KEY uk_target_movie (target_date, movie_cd)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='일별 박스오피스';
     """
 
     with connection.cursor() as cursor:
         cursor.execute(sql)
 
     connection.commit()
+
+
+def truncate_table(connection):
+    """
+    kobis_daily_boxoffice 테이블 데이터를 초기화합니다.
+    """
+    sql = "TRUNCATE TABLE kobis_daily_boxoffice"
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+
+    connection.commit()
+    print("kobis_daily_boxoffice 테이블 초기화 완료")
 
 
 def to_int(value):
@@ -226,32 +244,54 @@ def save_boxoffice_to_db(connection, target_date, boxoffice_list):
 
     connection.commit()
 
-    print(f"{len(rows)}건 저장 완료")
+    print(f"[{target_date}] {len(rows)}건 저장 완료")
 
 
 def main():
-    target_date = get_target_date()
-
-    print(f"조회 기준일: {target_date}")
-
-    data = fetch_kobis_daily_boxoffice(target_date)
-
-    boxoffice_result = data.get("boxOfficeResult", {})
-    boxoffice_list = boxoffice_result.get("dailyBoxOfficeList", [])
-
-    if not boxoffice_list:
-        print("저장할 박스오피스 데이터가 없습니다.")
-        return
-
     connection = mysql.connector.connect(**DB_CONFIG)
 
     try:
         create_table_if_not_exists(connection)
-        save_boxoffice_to_db(connection, target_date, boxoffice_list)
+        truncate_table(connection)
+
+        start_date = date(2026, 1, 1)
+        # 박스오피스 데이터는 보통 전날까지 집계되므로 어제 또는 오늘 날짜까지 조회
+        end_date = (datetime.now() - timedelta(days=1)).date()
+
+        current_date = start_date
+        total_saved_days = 0
+
+        while current_date <= end_date:
+            target_date = current_date.strftime("%Y%m%d")
+            try:
+                data = fetch_kobis_daily_boxoffice(target_date)
+
+                boxoffice_result = data.get("boxOfficeResult", {})
+                boxoffice_list = boxoffice_result.get("dailyBoxOfficeList", [])
+
+                if boxoffice_list:
+                    save_boxoffice_to_db(connection, target_date, boxoffice_list)
+                    total_saved_days += 1
+                else:
+                    print(f"[{target_date}] 저장할 박스오피스 데이터가 없습니다.")
+            except Exception as e:
+                print(f"[{target_date}] 처리 중 오류 발생 (무시하고 계속 진행): {e}")
+                try:
+                    connection.rollback()
+                except Exception:
+                    pass
+
+            current_date += timedelta(days=1)
+
+        print(f"\n총 {total_saved_days}일간의 박스오피스 데이터 수집 완료")
+
+    except Exception as e:
+        print(f"실행 중 오류 발생: {e}")
+
     finally:
         connection.close()
 
-    print("작업 완료")
+    print("모든 작업 완료")
 
 
 if __name__ == "__main__":
