@@ -9,7 +9,7 @@ import mysql.connector
 # ==============================
 # KOBIS API 설정
 # ==============================
-KOBIS_API_KEY = "07967092cdf290d53659a8dc6b23d5da"
+KOBIS_API_KEY = "3b3136e71ec385825e12a2b485e8f296"
 
 # 영화 상세정보 API URL (action_movie.md 참조)
 KOBIS_MOVIE_INFO_URL = (
@@ -22,7 +22,7 @@ KOBIS_MOVIE_INFO_URL = (
 DB_CONFIG = {
     "host": "localhost",
     "port": 3308,
-    "database": "shop_db",
+    "database": "kobis_db",
     "user": "shop_user007",
     "password": "dy",
     "charset": "utf8mb4",
@@ -62,158 +62,11 @@ def fetch_kobis_movie_detail(movie_cd, max_retries=3):
 
     return {}
 
-
-def create_detail_tables_if_not_exists(connection):
-    """
-    영화 상세정보 및 하위 테이블(배우, 감독, 제작사, 심의정보, 스텝, 상영형태, 제작국가, 장르)을 생성합니다.
-    """
-    with connection.cursor() as cursor:
-        # 1. 영화 상세정보 메인 테이블
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kobis_movie_detail (
-            movie_cd VARCHAR(20) PRIMARY KEY COMMENT '영화코드',
-            movie_nm VARCHAR(500) COMMENT '영화명(국문)',
-            movie_nm_en VARCHAR(500) COMMENT '영화명(영문)',
-            movie_nm_og VARCHAR(500) COMMENT '영화명(원문)',
-            prdt_year VARCHAR(20) COMMENT '제작연도',
-            show_tm VARCHAR(20) COMMENT '상영시간',
-            open_dt VARCHAR(20) COMMENT '개봉연도',
-            prdt_stat_nm VARCHAR(100) COMMENT '제작상태명',
-            type_nm VARCHAR(100) COMMENT '영화유형명',
-            nations TEXT COMMENT '제작국가(전체)',
-            genres TEXT COMMENT '장르(전체)',
-            directors TEXT COMMENT '감독명(전체)',
-            actors TEXT COMMENT '배우명(전체)',
-            show_types TEXT COMMENT '상영형태(전체)',
-            audits TEXT COMMENT '심의정보(전체)',
-            companys TEXT COMMENT '참여 영화사(전체)',
-            staffs TEXT COMMENT '스텝(전체)',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시'
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='영화 상세정보';
-        """)
-
-        # 2. 영화 감독 테이블
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kobis_movie_director (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 식별자',
-            movie_cd VARCHAR(20) NOT NULL COMMENT '영화코드',
-            people_nm VARCHAR(255) COMMENT '감독명',
-            people_nm_en VARCHAR(255) COMMENT '감독명(영문)',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-            UNIQUE KEY uk_movie_director (movie_cd, people_nm, people_nm_en),
-            KEY idx_movie_cd (movie_cd)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='영화 감독 정보';
-        """)
-
-        # 3. 영화 배우 테이블
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kobis_movie_actor (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 식별자',
-            movie_cd VARCHAR(20) NOT NULL COMMENT '영화코드',
-            people_nm VARCHAR(255) COMMENT '배우명',
-            people_nm_en VARCHAR(255) COMMENT '배우명(영문)',
-            cast VARCHAR(255) COMMENT '배역명',
-            cast_en VARCHAR(255) COMMENT '배역명(영문)',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-            KEY idx_movie_cd (movie_cd),
-            KEY idx_people_nm (people_nm)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='영화 배우 정보';
-        """)
-
-        # 4. 영화 참여 영화사 테이블
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kobis_movie_company (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 식별자',
-            movie_cd VARCHAR(20) NOT NULL COMMENT '영화코드',
-            company_cd VARCHAR(20) COMMENT '참여 영화사 코드',
-            company_nm VARCHAR(500) COMMENT '참여 영화사명',
-            company_nm_en VARCHAR(500) COMMENT '참여 영화사명(영문)',
-            company_part_nm VARCHAR(100) COMMENT '참여 영화사 분야명',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-            KEY idx_movie_cd (movie_cd),
-            KEY idx_company_cd (company_cd)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='영화 참여 영화사 정보';
-        """)
-
-        # 5. 영화 심의정보 테이블
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kobis_movie_audit (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 식별자',
-            movie_cd VARCHAR(20) NOT NULL COMMENT '영화코드',
-            audit_no VARCHAR(100) COMMENT '심의번호',
-            watch_grade_nm VARCHAR(100) COMMENT '관람등급 명칭',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-            KEY idx_movie_cd (movie_cd)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='영화 심의 정보';
-        """)
-
-        # 6. 영화 스텝 테이블
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kobis_movie_staff (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 식별자',
-            movie_cd VARCHAR(20) NOT NULL COMMENT '영화코드',
-            people_nm VARCHAR(255) COMMENT '스텝명',
-            people_nm_en VARCHAR(255) COMMENT '스텝명(영문)',
-            staff_role_nm VARCHAR(100) COMMENT '스텝역할명',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-            KEY idx_movie_cd (movie_cd)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='영화 스텝 정보';
-        """)
-
-        # 7. 영화 상영형태 테이블
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kobis_movie_show_type (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 식별자',
-            movie_cd VARCHAR(20) NOT NULL COMMENT '영화코드',
-            show_type_group_nm VARCHAR(100) COMMENT '상영형태 구분',
-            show_type_nm VARCHAR(100) COMMENT '상영형태명',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-            KEY idx_movie_cd (movie_cd)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='영화 상영형태 정보';
-        """)
-
-        # 8. 영화 제작국가 테이블
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kobis_movie_nation (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 식별자',
-            movie_cd VARCHAR(20) NOT NULL COMMENT '영화코드',
-            nation_nm VARCHAR(100) COMMENT '제작국가명',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-            UNIQUE KEY uk_movie_nation (movie_cd, nation_nm),
-            KEY idx_movie_cd (movie_cd)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='영화 제작국가 정보';
-        """)
-
-        # 9. 영화 장르 테이블
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS kobis_movie_genre (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 식별자',
-            movie_cd VARCHAR(20) NOT NULL COMMENT '영화코드',
-            genre_nm VARCHAR(100) COMMENT '장르명',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
-            UNIQUE KEY uk_movie_genre (movie_cd, genre_nm),
-            KEY idx_movie_cd (movie_cd)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='영화 장르 정보';
-        """)
-
-    connection.commit()
-    print("영화 상세정보 테이블 세트 확인 및 생성 완료")
-
-
 def get_target_movie_codes(connection, limit=None):
     """
     kobis_movie_info 테이블에서 조회 대상 영화 코드 목록을 가져옵니다.
     """
-    sql = "SELECT movie_cd FROM kobis_movie_info ORDER BY movie_cd"
+    sql = "SELECT movie_cd FROM kobis_movie ORDER BY movie_cd"
     if limit:
         sql += f" LIMIT {limit}"
 
@@ -232,7 +85,7 @@ def save_movie_details_batch(connection, details_list):
         return
 
     detail_sql = """
-    INSERT INTO kobis_movie_detail (
+    INSERT INTO kobis_movie (
         movie_cd, movie_nm, movie_nm_en, movie_nm_og, prdt_year,
         show_tm, open_dt, prdt_stat_nm, type_nm, nations,
         genres, directors, actors, show_types, audits,
@@ -549,8 +402,6 @@ def main():
     connection = mysql.connector.connect(**DB_CONFIG)
 
     try:
-        create_detail_tables_if_not_exists(connection)
-
         movie_codes = get_target_movie_codes(connection)
         if not movie_codes:
             print("kobis_movie_info 테이블에 조회할 영화 데이터가 없습니다.")

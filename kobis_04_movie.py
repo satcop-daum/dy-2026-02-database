@@ -1,4 +1,3 @@
-
 import json
 import math
 import time
@@ -9,7 +8,7 @@ import mysql.connector
 # ==============================
 # KOBIS API 설정
 # ==============================
-KOBIS_API_KEY = "07967092cdf290d53659a8dc6b23d5da"
+KOBIS_API_KEY = "3b3136e71ec385825e12a2b485e8f296"
 # 영화목록 API
 KOBIS_MOVIE_LIST_URL = "https://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json"
 
@@ -19,11 +18,12 @@ KOBIS_MOVIE_LIST_URL = "https://www.kobis.or.kr/kobisopenapi/webservice/rest/mov
 DB_CONFIG = {
     "host": "localhost",
     "port": 3308,
-    "database": "shop_db",
+    "database": "kobis_db",
     "user": "shop_user007",
     "password": "dy",
     "charset": "utf8mb4",
 }
+
 
 def fetch_kobis_movie_list(cur_page=1, item_per_page=100, max_retries=3):
     """
@@ -35,12 +35,12 @@ def fetch_kobis_movie_list(cur_page=1, item_per_page=100, max_retries=3):
         "curPage": cur_page,
         "itemPerPage": item_per_page,
     }
-    
+
     query_string = urllib.parse.urlencode(params)
     request_url = f"{KOBIS_MOVIE_LIST_URL}?{query_string}"
-    
+
     print(f"KOBIS API 요청 URL: {request_url}")
-    
+
     for attempt in range(1, max_retries + 1):
         try:
             req = urllib.request.Request(
@@ -59,33 +59,47 @@ def fetch_kobis_movie_list(cur_page=1, item_per_page=100, max_retries=3):
                 return {}
     return {}
 
+
 def save_movies_to_db(connection, movie_list):
     """
     영화목록 데이터를 DB에 저장합니다.
-    모든 응답 필드(movieCd, movieNm, movieNmEn, prdtYear, openDt, typeNm,
-    prdtStatNm, nationAlt, genreAlt, repNationNm, repGenreNm, directors,
-    peopleNm, companys, companyCd, companyNm)를 누락 없이 저장합니다.
+    모든 응답 필드(movieCd, movieNm, movieNmEn, prdtYear, openDt, prdtStatNm, typeNm)만 누락 없이 저장합니다.
     """
     if not movie_list:
         print("저장할 영화목록 데이터가 없습니다.")
         return 0
 
     sql = """
-    INSERT INTO kobis_movie (
-        movie_cd, movie_nm, movie_nm_en, prdt_year, open_dt, prdt_stat_nm, type_nm
-    ) VALUES (
-        %(movie_cd)s, %(movie_nm)s, %(movie_nm_en)s, %(prdt_year)s, %(open_dt)s, %(type_nm)s
-    )
-    ON DUPLICATE KEY UPDATE
-        movie_nm = VALUES(movie_nm),
-        movie_nm_en = VALUES(movie_nm_en),
-        prdt_year = VALUES(prdt_year),
-        open_dt = VALUES(open_dt),
-        prdt_stat_nm = VALUES(prdt_stat_nm),
-        type_nm = VALUES(type_nm)
-        updated_at = CURRENT_TIMESTAMP;
-    """
-    
+        INSERT INTO kobis_movie 
+        (
+            movie_cd
+            , movie_nm
+            , movie_nm_en
+            , prdt_year
+            , open_dt
+            , prdt_stat_nm
+            , type_nm
+        )
+        VALUES 
+        (
+            %(movie_cd)s
+            , %(movie_nm)s
+            , %(movie_nm_en)s
+            , %(prdt_year)s
+            , %(open_dt)s
+            , %(prdt_stat_nm)s  
+            , %(type_nm)s
+        ) 
+        ON DUPLICATE KEY UPDATE 
+            movie_nm = VALUES (movie_nm)
+            , movie_nm_en = VALUES (movie_nm_en)
+            , prdt_year = VALUES (prdt_year)
+            , open_dt = VALUES (open_dt)
+            , prdt_stat_nm = VALUES (prdt_stat_nm)
+            , type_nm = VALUES (type_nm) 
+            , updated_at = CURRENT_TIMESTAMP; 
+          """
+
     rows = []
     for item in movie_list:
         movie_cd = item.get("movieCd")
@@ -97,12 +111,12 @@ def save_movies_to_db(connection, movie_list):
         dir_names = [d.get("peopleNm") for d in directors if d.get("peopleNm")]
         people_nm_str = ", ".join(dir_names) if dir_names else None
         directors_str = people_nm_str
-        
+
         # 제작사 정보 처리 (companyCd, companyNm 추출 및 companys, company_cd, company_nm 에 저장)
         companys = item.get("companys", [])
         comp_cds = [c.get("companyCd") for c in companys if c.get("companyCd")]
         comp_nms = [c.get("companyNm") for c in companys if c.get("companyNm")]
-        
+
         company_cd_str = ", ".join(comp_cds) if comp_cds else None
         company_nm_str = ", ".join(comp_nms) if comp_nms else None
 
@@ -137,7 +151,7 @@ def save_movies_to_db(connection, movie_list):
             "company_nm": company_nm_str,
         }
         rows.append(row)
-    
+
     if not rows:
         print("저장할 영화목록 데이터가 없습니다.")
         return 0
@@ -149,27 +163,28 @@ def save_movies_to_db(connection, movie_list):
     print(f"DB insert 실행 결과: {row_count}건 반영 완료 ({len(rows)}건 데이터)")
     return row_count
 
+
 def main():
     connection = mysql.connector.connect(**DB_CONFIG)
-    
+
     try:
         item_per_page = 100
         total_saved_count = 0
-        
+
         # 1페이지 조회 및 전체 개수(totCnt) 확인
         print("\n1페이지 조회 중...")
         result = fetch_kobis_movie_list(cur_page=1, item_per_page=item_per_page)
         tot_cnt = int(result.get("totCnt", 0))
         movie_list = result.get("movieList", [])
-        
+
         if movie_list:
             save_movies_to_db(connection, movie_list)
             total_saved_count += len(movie_list)
-            
+
         total_pages = math.ceil(tot_cnt / item_per_page) if item_per_page else 1
         print(f"\n전체 영화 개수: {tot_cnt}건, 총 페이지 수: {total_pages}페이지")
         print(f"누적 저장 데이터 수: {total_saved_count}/{tot_cnt}건")
-        
+
         # 2페이지부터 마지막 페이지까지 순차 조회
         for page in range(2, total_pages + 1):
             print(f"\n{page}/{total_pages}페이지 조회 중...")
@@ -178,9 +193,9 @@ def main():
                 if not result:
                     print(f"{page}페이지 데이터를 가져오지 못했습니다. 다음 페이지로 진행합니다.")
                     continue
-                    
+
                 movie_list = result.get("movieList", [])
-                
+
                 if movie_list:
                     save_movies_to_db(connection, movie_list)
                     total_saved_count += len(movie_list)
@@ -194,15 +209,16 @@ def main():
                     connection.rollback()
                 except Exception:
                     pass
-                
+
         print(f"\n총 {total_saved_count}건의 영화 정보 처리 완료")
-                
+
     except Exception as e:
         print(f"실행 중 오류 발생: {e}")
     finally:
         connection.close()
 
     print("\n모든 작업 완료")
+
 
 if __name__ == "__main__":
     main()
