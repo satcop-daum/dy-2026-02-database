@@ -27,6 +27,8 @@ def fetch_kobis_movie_detail(movie_cd, max_retries=3):
     query_string = urllib.parse.urlencode(params)
     request_url = f"{KOBIS_MOVIE_INFO_URL}?{query_string}"
 
+    #print(request_url)
+
     for attempt in range(1, max_retries + 1):
         try:
             req = urllib.request.Request(
@@ -50,9 +52,9 @@ def fetch_kobis_movie_detail(movie_cd, max_retries=3):
 
 def get_target_movie_codes(connection, limit=None):
     """
-    kobis_movie_info 테이블에서 조회 대상 영화 코드 목록을 가져옵니다.
+    kobis_movie 테이블에서 조회 대상 영화 코드 목록(run_yn = 0)을 가져옵니다.
     """
-    sql = "SELECT movie_cd FROM kobis_movie ORDER BY movie_cd"
+    sql = "SELECT movie_cd FROM kobis_movie WHERE run_yn = 0 ORDER BY movie_cd"
     if limit:
         sql += f" LIMIT {limit}"
 
@@ -73,11 +75,11 @@ def save_movie_details_batch(connection, details_list):
     INSERT INTO kobis_movie (
         movie_cd, movie_nm, movie_nm_en, movie_nm_og, prdt_year,
         show_tm, open_dt, prdt_stat_nm, type_nm,
-        audits
+        audits, run_yn
     ) VALUES (
         %(movie_cd)s, %(movie_nm)s, %(movie_nm_en)s, %(movie_nm_og)s, %(prdt_year)s,
         %(show_tm)s, %(open_dt)s, %(prdt_stat_nm)s, %(type_nm)s,
-        %(audits)s
+        %(audits)s, 1
     )
     ON DUPLICATE KEY UPDATE
         movie_nm = VALUES(movie_nm),
@@ -89,6 +91,7 @@ def save_movie_details_batch(connection, details_list):
         prdt_stat_nm = VALUES(prdt_stat_nm),
         type_nm = VALUES(type_nm),        
         audits = VALUES(audits),        
+        run_yn = 1,
         updated_at = CURRENT_TIMESTAMP;
     """
 
@@ -332,13 +335,19 @@ def save_movie_details_batch(connection, details_list):
             cursor.executemany(genre_sql, genre_rows)
 
     connection.commit()
+    print(
+        f"  [DB 저장 완료] 영화 {len(detail_rows)}건 저장 성공 "
+        f"(기본정보: {len(detail_rows)}, 감독: {len(director_rows)}, 배우: {len(actor_rows)}, "
+        f"영화사: {len(company_rows)}, 심의: {len(audit_rows)}, 스태프: {len(staff_rows)}, "
+        f"상영형태: {len(show_type_rows)}, 국가: {len(nation_rows)}, 장르: {len(genre_rows)})"
+    )
 
 def process_movie_details(connection, movie_codes, batch_size=50, max_workers=10):
     """
     영화 목록을 멀티스레드로 조회하여 배치 단위로 DB에 저장합니다.
     """
     total = len(movie_codes)
-    print(f"총 {total}건의 영화 상세정보 수집 시작 (동시 스레드: {max_workers})")
+    print(f"총 {total}건의 영화 상세정보 수집 및 DB 저장 시작 (동시 스레드: {max_workers})")
 
     completed = 0
     start_time = time.time()
@@ -357,20 +366,25 @@ def process_movie_details(connection, movie_codes, batch_size=50, max_workers=10
                     detail = future.result()
                     if detail:
                         details_list.append(detail)
+                        movie_nm = detail.get("movieNm", "")
+                        movie_cd = detail.get("movieCd", "")
+                        print(f"  [API 조회 성공] [{movie_cd}] {movie_nm}")
                 except Exception as exc:
                     code = future_to_code[future]
-                    print(f"영화 [{code}] 처리 중 예외 발생: {exc}")
+                    print(f"  [API 조회 실패] 영화 [{code}] 처리 중 예외 발생: {exc}")
 
         if details_list:
             try:
                 save_movie_details_batch(connection, details_list)
             except Exception as e:
-                print(f"배치 저장 중 오류 발생: {e}")
+                print(f"  [DB 저장 실패] 배치 저장 중 오류 발생: {e}")
                 connection.rollback()
+        else:
+            print(f"  [DB 저장 알림] 저장할 유효한 영화 상세정보 데이터가 없습니다.")
 
         completed += len(chunk)
         elapsed = time.time() - start_time
-        print(f"진행 상황: {completed}/{total} ({completed / total * 100:.1f}%) 완료 - 소요 시간: {elapsed:.1f}초")
+        print(f"진행 상황: {completed}/{total} ({completed / total * 100:.1f}%) 완료 - 소요 시간: {elapsed:.1f}초\n")
 
 
 def main():
@@ -379,9 +393,10 @@ def main():
     try:
         movie_codes = get_target_movie_codes(connection)
         if not movie_codes:
-            print("kobis_movie_info 테이블에 조회할 영화 데이터가 없습니다.")
+            print("kobis_movie 테이블에 조회할 대상 데이터(run_yn = 0)가 없습니다.")
             return
 
+        print(f"조회 대상 영화 총 {len(movie_codes)}건 검색됨 (run_yn = 0)")
         process_movie_details(connection, movie_codes, batch_size=50, max_workers=10)
 
     except Exception as e:
