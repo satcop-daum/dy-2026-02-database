@@ -59,6 +59,47 @@ def fetch_kobis_movie_list(cur_page=1, item_per_page=100, max_retries=3):
                 return {}
     return {}
 
+def create_table_if_not_exists(connection):
+    """
+    영화목록 데이터를 저장할 테이블을 생성합니다.
+    기존 테이블이 있을 경우 누락된 컬럼을 자동으로 추가합니다.
+    """
+    sql = """
+    CREATE TABLE IF NOT EXISTS kobis_movie_info (
+        movie_cd VARCHAR(20) PRIMARY KEY COMMENT '영화코드',
+        movie_nm VARCHAR(500) COMMENT '영화명(국문)',
+        movie_nm_en VARCHAR(500) COMMENT '영화명(영문)',
+        prdt_year VARCHAR(20) COMMENT '제작연도',
+        open_dt VARCHAR(20) COMMENT '개봉일',
+        type_nm VARCHAR(100) COMMENT '영화유형',
+        prdt_stat_nm VARCHAR(100) COMMENT '제작상태',
+        nation_alt VARCHAR(500) COMMENT '제작국가(전체)',
+        genre_alt VARCHAR(500) COMMENT '영화장르(전체)',
+        rep_nation_nm VARCHAR(100) COMMENT '대표 제작국가명',
+        rep_genre_nm VARCHAR(100) COMMENT '대표 장르명',
+        directors TEXT COMMENT '영화감독',
+        people_nm TEXT COMMENT '영화감독명',
+        companys TEXT COMMENT '제작사',
+        company_cd TEXT COMMENT '제작사 코드',
+        company_nm TEXT COMMENT '제작사명',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시'
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='영화목록 정보';
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        cursor.execute("SHOW COLUMNS FROM kobis_movie_info;")
+        existing_cols = {row[0] for row in cursor.fetchall()}
+
+        if "people_nm" not in existing_cols:
+            cursor.execute("ALTER TABLE kobis_movie_info ADD COLUMN people_nm TEXT COMMENT '영화감독명' AFTER directors;")
+        if "company_cd" not in existing_cols:
+            cursor.execute("ALTER TABLE kobis_movie_info ADD COLUMN company_cd TEXT COMMENT '제작사 코드' AFTER companys;")
+        if "company_nm" not in existing_cols:
+            cursor.execute("ALTER TABLE kobis_movie_info ADD COLUMN company_nm TEXT COMMENT '제작사명' AFTER company_cd;")
+
+    connection.commit()
+
 def save_movies_to_db(connection, movie_list):
     """
     영화목록 데이터를 DB에 저장합니다.
@@ -71,18 +112,33 @@ def save_movies_to_db(connection, movie_list):
         return 0
 
     sql = """
-    INSERT INTO kobis_movie (
-        movie_cd, movie_nm, movie_nm_en, prdt_year, open_dt, prdt_stat_nm, type_nm
+    INSERT INTO kobis_movie_info (
+        movie_cd, movie_nm, movie_nm_en, prdt_year, open_dt,
+        type_nm, prdt_stat_nm, nation_alt, genre_alt,
+        rep_nation_nm, rep_genre_nm, directors, people_nm,
+        companys, company_cd, company_nm
     ) VALUES (
-        %(movie_cd)s, %(movie_nm)s, %(movie_nm_en)s, %(prdt_year)s, %(open_dt)s, %(type_nm)s
+        %(movie_cd)s, %(movie_nm)s, %(movie_nm_en)s, %(prdt_year)s, %(open_dt)s,
+        %(type_nm)s, %(prdt_stat_nm)s, %(nation_alt)s, %(genre_alt)s,
+        %(rep_nation_nm)s, %(rep_genre_nm)s, %(directors)s, %(people_nm)s,
+        %(companys)s, %(company_cd)s, %(company_nm)s
     )
     ON DUPLICATE KEY UPDATE
         movie_nm = VALUES(movie_nm),
         movie_nm_en = VALUES(movie_nm_en),
         prdt_year = VALUES(prdt_year),
         open_dt = VALUES(open_dt),
+        type_nm = VALUES(type_nm),
         prdt_stat_nm = VALUES(prdt_stat_nm),
-        type_nm = VALUES(type_nm)
+        nation_alt = VALUES(nation_alt),
+        genre_alt = VALUES(genre_alt),
+        rep_nation_nm = VALUES(rep_nation_nm),
+        rep_genre_nm = VALUES(rep_genre_nm),
+        directors = VALUES(directors),
+        people_nm = VALUES(people_nm),
+        companys = VALUES(companys),
+        company_cd = VALUES(company_cd),
+        company_nm = VALUES(company_nm),
         updated_at = CURRENT_TIMESTAMP;
     """
     
@@ -149,10 +205,26 @@ def save_movies_to_db(connection, movie_list):
     print(f"DB insert 실행 결과: {row_count}건 반영 완료 ({len(rows)}건 데이터)")
     return row_count
 
+
+def reset_table(connection):
+    """
+    kobis_movie_info 테이블의 데이터를 초기화합니다.
+    """
+    sql = "TRUNCATE TABLE kobis_movie_info;"
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+    connection.commit()
+    print("kobis_movie_info 테이블 초기화 완료")
+
+
 def main():
     connection = mysql.connector.connect(**DB_CONFIG)
     
     try:
+        create_table_if_not_exists(connection)
+        
+        reset_table(connection)
+        
         item_per_page = 100
         total_saved_count = 0
         
