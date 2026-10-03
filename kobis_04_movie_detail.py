@@ -72,14 +72,12 @@ def save_movie_details_batch(connection, details_list):
     detail_sql = """
     INSERT INTO kobis_movie (
         movie_cd, movie_nm, movie_nm_en, movie_nm_og, prdt_year,
-        show_tm, open_dt, prdt_stat_nm, type_nm, nations,
-        genres, directors, actors, show_types, audits,
-        companys, staffs
+        show_tm, open_dt, prdt_stat_nm, type_nm,
+        audits
     ) VALUES (
         %(movie_cd)s, %(movie_nm)s, %(movie_nm_en)s, %(movie_nm_og)s, %(prdt_year)s,
-        %(show_tm)s, %(open_dt)s, %(prdt_stat_nm)s, %(type_nm)s, %(nations)s,
-        %(genres)s, %(directors)s, %(actors)s, %(show_types)s, %(audits)s,
-        %(companys)s, %(staffs)s
+        %(show_tm)s, %(open_dt)s, %(prdt_stat_nm)s, %(type_nm)s,
+        %(audits)s
     )
     ON DUPLICATE KEY UPDATE
         movie_nm = VALUES(movie_nm),
@@ -89,15 +87,8 @@ def save_movie_details_batch(connection, details_list):
         show_tm = VALUES(show_tm),
         open_dt = VALUES(open_dt),
         prdt_stat_nm = VALUES(prdt_stat_nm),
-        type_nm = VALUES(type_nm),
-        nations = VALUES(nations),
-        genres = VALUES(genres),
-        directors = VALUES(directors),
-        actors = VALUES(actors),
-        show_types = VALUES(show_types),
-        audits = VALUES(audits),
-        companys = VALUES(companys),
-        staffs = VALUES(staffs),
+        type_nm = VALUES(type_nm),        
+        audits = VALUES(audits),        
         updated_at = CURRENT_TIMESTAMP;
     """
 
