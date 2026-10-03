@@ -6,24 +6,11 @@ import urllib.parse
 import urllib.request
 import mysql.connector
 
-# ==============================
-# KOBIS API 설정
-# ==============================
-KOBIS_API_KEY = "07967092cdf290d53659a8dc6b23d5da"
+from config_api import KOBIS_API_KEY
+from config_db import DB_CONFIG
+
 # 영화목록 API
 KOBIS_MOVIE_LIST_URL = "https://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json"
-
-# ==============================
-# DB 접속 정보
-# ==============================
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 3308,
-    "database": "shop_db",
-    "user": "shop_user007",
-    "password": "dy",
-    "charset": "utf8mb4",
-}
 
 def fetch_kobis_movie_list(cur_page=1, item_per_page=100, max_retries=3):
     """

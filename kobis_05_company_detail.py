@@ -6,28 +6,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import mysql.connector
 
-# ==============================
-# KOBIS API 설정
-# ==============================
-KOBIS_API_KEY = "07967092cdf290d53659a8dc6b23d5da"
+from config_api import KOBIS_API_KEY
+from config_db import DB_CONFIG
 
 # 영화사 상세정보 API
 KOBIS_COMPANY_INFO_URL = (
     "https://kobis.or.kr/kobisopenapi/webservice/rest/company/searchCompanyInfo.json"
 )
-
-# ==============================
-# DB 접속 정보
-# ==============================
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 3308,
-    "database": "shop_db",
-    "user": "shop_user007",
-    "password": "dy",
-    "charset": "utf8mb4",
-}
-
 
 def fetch_kobis_company_detail(company_cd, max_retries=3):
     """

@@ -4,23 +4,10 @@ import urllib.parse
 import urllib.request
 import mysql.connector
 
-# ==============================
-# KOBIS API 설정
-# ==============================
-KOBIS_API_KEY = "07967092cdf290d53659a8dc6b23d5da"
-KOBIS_API_URL = "https://kobis.or.kr/kobisopenapi/webservice/rest/code/searchCodeList.json"
+from config_api import KOBIS_API_KEY
+from config_db import DB_CONFIG
 
-# ==============================
-# DB 접속 정보
-# ==============================
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 3308,
-    "database": "shop_db",
-    "user": "shop_user007",
-    "password": "dy",
-    "charset": "utf8mb4",
-}
+KOBIS_API_URL = "https://kobis.or.kr/kobisopenapi/webservice/rest/code/searchCodeList.json"
 
 def fetch_kobis_common_codes(com_code):
     """

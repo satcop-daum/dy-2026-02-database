@@ -6,28 +6,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import mysql.connector
 
-# ==============================
-# KOBIS API 설정
-# ==============================
-KOBIS_API_KEY = "3b3136e71ec385825e12a2b485e8f296"
+from config_api import KOBIS_API_KEY
+from config_db import DB_CONFIG
+
 
 # 영화 상세정보 API URL (action_movie.md 참조)
 KOBIS_MOVIE_INFO_URL = (
     "https://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieInfo.json"
 )
-
-# ==============================
-# DB 접속 정보
-# ==============================
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 3308,
-    "database": "kobis_db",
-    "user": "shop_user007",
-    "password": "dy",
-    "charset": "utf8mb4",
-}
-
 
 def fetch_kobis_movie_detail(movie_cd, max_retries=3):
     """
@@ -75,7 +61,6 @@ def get_target_movie_codes(connection, limit=None):
         rows = cursor.fetchall()
 
     return [row[0] for row in rows]
-
 
 def save_movie_details_batch(connection, details_list):
     """
@@ -356,7 +341,6 @@ def save_movie_details_batch(connection, details_list):
             cursor.executemany(genre_sql, genre_rows)
 
     connection.commit()
-
 
 def process_movie_details(connection, movie_codes, batch_size=50, max_workers=10):
     """

@@ -7,28 +7,11 @@ from datetime import date, datetime, timedelta
 
 import mysql.connector
 
-
-# ==============================
-# KOBIS API 설정
-# ==============================
-KOBIS_API_KEY = "07967092cdf290d53659a8dc6b23d5da"
+from config_api import KOBIS_API_KEY
+from config_db import DB_CONFIG
 
 # 일별 박스오피스 API
 KOBIS_API_URL = "https://kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.json"
-
-
-# ==============================
-# DB 접속 정보
-# ==============================
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 3308,
-    "database": "shop_db",
-    "user": "shop_user007",
-    "password": "dy",
-    "charset": "utf8mb4",
-}
-
 
 def fetch_kobis_daily_boxoffice(target_date, max_retries=3):
     """
