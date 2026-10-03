@@ -1,4 +1,5 @@
 import json
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -6,7 +7,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import mysql.connector
 
-from config_api import KOBIS_API_KEY
+try:
+    from config_api import KOBIS_API_KEYS
+except ImportError:
+    from config_api import KOBIS_API_KEY
+    KOBIS_API_KEYS = [KOBIS_API_KEY]
 from config_db import DB_CONFIG
 
 
@@ -15,38 +20,103 @@ KOBIS_MOVIE_INFO_URL = (
     "https://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieInfo.json"
 )
 
+
+class ApiKeyManager:
+    """
+    KOBIS API 일일 호출 제한(3,000회) 초과 시 키를 자동 순환/전환하는 매니저
+    """
+    def __init__(self, api_keys):
+        if isinstance(api_keys, str):
+            self.api_keys = [api_keys]
+        else:
+            self.api_keys = list(api_keys)
+        self.current_index = 0
+        self.lock = threading.Lock()
+
+    def get_current_key(self):
+        with self.lock:
+            return self.api_keys[self.current_index]
+
+    def switch_to_next_key(self, failed_key=None):
+        with self.lock:
+            # 멀티스레드 환경에서 다른 스레드가 이미 키를 전환했을 수 있으므로 failed_key 비교
+            if failed_key is None or self.api_keys[self.current_index] == failed_key:
+                prev_index = self.current_index
+                self.current_index = (self.current_index + 1) % len(self.api_keys)
+                prev_key = self.api_keys[prev_index]
+                new_key = self.api_keys[self.current_index]
+                print(
+                    f"  [API 키 전환] 제한 초과 또는 오류로 키 변경: "
+                    f"[{prev_index + 1}/{len(self.api_keys)}] {prev_key[:8]}... -> [{self.current_index + 1}/{len(self.api_keys)}] {new_key[:8]}..."
+                )
+            return self.api_keys[self.current_index]
+
+
+# API 키 매니저 인스턴스 생성
+key_manager = ApiKeyManager(KOBIS_API_KEYS)
+
+
 def fetch_kobis_movie_detail(movie_cd, max_retries=3):
     """
     KOBIS API에서 특정 영화의 상세정보를 조회합니다.
+    API 일일 호출 제한 초과 또는 오류 발생 시 다음 키로 변경하여 재시도합니다.
     """
-    params = {
-        "key": KOBIS_API_KEY,
-        "movieCd": movie_cd,
-    }
+    total_keys = len(key_manager.api_keys)
+    keys_tried = 0
 
-    query_string = urllib.parse.urlencode(params)
-    request_url = f"{KOBIS_MOVIE_INFO_URL}?{query_string}"
+    while keys_tried < total_keys:
+        current_key = key_manager.get_current_key()
+        params = {
+            "key": current_key,
+            "movieCd": movie_cd,
+        }
 
-    #print(request_url)
+        query_string = urllib.parse.urlencode(params)
+        request_url = f"{KOBIS_MOVIE_INFO_URL}?{query_string}"
 
-    for attempt in range(1, max_retries + 1):
-        try:
-            req = urllib.request.Request(
-                request_url,
-                headers={"User-Agent": "Mozilla/5.0"}
-            )
-            with urllib.request.urlopen(req, timeout=15) as response:
-                response_body = response.read().decode("utf-8")
+        key_switched = False
+        for attempt in range(1, max_retries + 1):
+            try:
+                req = urllib.request.Request(
+                    request_url,
+                    headers={"User-Agent": "Mozilla/5.0"}
+                )
+                with urllib.request.urlopen(req, timeout=15) as response:
+                    response_body = response.read().decode("utf-8")
 
-            data = json.loads(response_body)
-            return data.get("movieInfoResult", {}).get("movieInfo", {})
+                data = json.loads(response_body)
 
-        except Exception as e:
-            if attempt < max_retries:
-                time.sleep(0.5 * attempt)
-            else:
-                print(f"[{movie_cd}] 영화 상세정보 API 조회 실패: {e}")
-                return {}
+                # API 오류 응답 처리 (일일 호출 제한 초과, 유효하지 않은 키 등)
+                if "faultInfo" in data:
+                    fault = data["faultInfo"]
+                    fault_msg = fault.get("message", "")
+                    fault_code = fault.get("errorCode", "")
+                    print(f"  [API 오류 발생] [{movie_cd}] (키: {current_key[:8]}..., 에러코드: {fault_code}, 메시지: {fault_msg})")
+                    key_manager.switch_to_next_key(failed_key=current_key)
+                    key_switched = True
+                    break
+
+                movie_info = data.get("movieInfoResult", {}).get("movieInfo")
+                if movie_info is not None:
+                    return movie_info
+                else:
+                    return {}
+
+            except Exception as e:
+                if attempt < max_retries:
+                    time.sleep(0.5 * attempt)
+                else:
+                    print(f"[{movie_cd}] 영화 상세정보 API 조회 실패 (키: {current_key[:8]}...): {e}")
+                    # 재시도 횟수 초과 시 키 문제일 가능성이 있으므로 키 전환 후 다음 키 시도
+                    key_manager.switch_to_next_key(failed_key=current_key)
+                    key_switched = True
+                    break
+
+        if key_switched:
+            keys_tried += 1
+        else:
+            # 정상 응답 받았으면 루프 종료
+            break
 
     return {}
 
@@ -368,7 +438,7 @@ def process_movie_details(connection, movie_codes, batch_size=50, max_workers=10
                         details_list.append(detail)
                         movie_nm = detail.get("movieNm", "")
                         movie_cd = detail.get("movieCd", "")
-                        print(f"  [API 조회 성공] [{movie_cd}] {movie_nm}")
+                        #print(f"  [API 조회 성공] [{movie_cd}] {movie_nm}")
                 except Exception as exc:
                     code = future_to_code[future]
                     print(f"  [API 조회 실패] 영화 [{code}] 처리 중 예외 발생: {exc}")

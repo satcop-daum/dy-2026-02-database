@@ -1,26 +1,59 @@
 
 # ==============================
-# KOBIS API 설정
+# KOBIS API 키 목록 (일일 3,000회 제한 대비)
 # ==============================
-KOBIS_API_KEY = "8061a0b5fcd9ebf0a3150fe9bc7dcb94"
+KOBIS_API_KEYS = [
+    "cb3c0cfc3e2c2c0c7c633735d19cd0c2",
+    "cb4e5e690af625070a3e76e36bc4f95c",
+    "fe1c5950a8698b759503a9c89701eeb2",
+    "f5870764e6b9c14921977e9302c0d92f",
+    "c005dcb3c3440d7cd34d2626f63bffc5",
+    "c28afeca3fa5dd5f1582c1298e79e7cf",
+    "d0b321f2afcad88f2c2521f211ac4346",
+    "9a0bb37d8dea167aa07ac499a6a8efd7",
+    "8bffa06c18d888d74cfbc2f73fd47637",
+    "4acbd301c799e4a82f49a2e8f3549eaa",
+    "b9448e95217ad8672bbcce1d6386a133",
+    "2c899aed3bfa1e00d7b10e2b3e0e4075",
+    "46c30373b7b1ab8e16903d7d4182c7ff",
+    "b4a21700d18b08bff64d008b41695384",
+    "774b01c2476edd14a17d223fae189aaf",
+    "42da6b88483c42e9fc777ae95091fbd2",
+    "d9c92e8abe235323cab97df9c71bc8ea",
+    "5e77dee29fb6b70ce9a2c6b2e6e001b8",
+    "5576955d0c48853f98366935b437b87e",
+    "2552be0a88c0a38a966ec2f2868eb361",
+    "013bdb0ff89c87a84fb763d7216f1c72",
+    "0dc812a000d9873132ecab34807f0e24",
+    "d4451761b57bf2b5f5762420654d3900",
+    "24c8431955d5cf3ae958e72f0775139f",
+    "f0b9eee956e080f7643f1ec9018e7e3c",
+    "937287c534b007a952587d67cfbec338",
+    "bde8f17eab1a785830c6f8eeb8b779e2",
+    "14c6a21124894d384f00f0dfaeb27e53",
+    "70b914c61285a4858937797226a76312",
+    "bb265d034190c9f06d9b6d4a755b7784",
+    "5b565d7f5f241eda4ef33f542684343c",
+    "7adc9ebf80c4d3eea881abbffaab8b7a",
+    "6620b5713515faed16f90a30bfbced05",
+    "5e3b508b2a3925640426c50c9921de67",
+    "3c18c75ef45c792789a3e35bdfd36fce",
+    "ba9b106d5d2547d61a599c0744a8657c",
+    "a40d391726cab4e2573ff12b025f8d2c",
+    "bbb20ac187e0d6fd46ea4b4997cdfda9",
+    "37ce70fb3b3eb34254b158149ecacdcf",
+    "baf39b7092f3bfe5a11fea8e736cc7e1",
+    "8a521999ace7437359d2888085ae1e51",
+    "092e16fa6e10efb792d1ef95496d9d16",
+    "795aa5d1bb7e51cc2789cadb6ade4546",
+    "22f64abcb3bb2859d86aa269d5692ffe",
+    "8078bdaeea81f35d8aedecf6e39e4639",
+    "88f9ac639d32e07ce832274da0d79cba",
+    "19734f26c3341da9e33be53faa12b4df",
+    "e7834b8141e189f8bcc692234b70f613",
+    "734aac4eae4eab2fd3bcd3e13b4ce23e",
+    "8061a0b5fcd9ebf0a3150fe9bc7dcb94",
+]
 
-
-# ==============================
-# KOBIS API 설정
-# ==============================
-# KOBIS_API_KEY = "f7fd1370f2d28411b26102bd70b9e17f"
-
-
-
-bb265d034190c9f06d9b6d4a755b7784
-5b565d7f5f241eda4ef33f542684343c
-7adc9ebf80c4d3eea881abbffaab8b7a
-6620b5713515faed16f90a30bfbced05
-5e3b508b2a3925640426c50c9921de67
-3c18c75ef45c792789a3e35bdfd36fce
-ba9b106d5d2547d61a599c0744a8657c
-a40d391726cab4e2573ff12b025f8d2c
-bbb20ac187e0d6fd46ea4b4997cdfda9
-37ce70fb3b3eb34254b158149ecacdcf
-
+KOBIS_API_KEY = KOBIS_API_KEYS[0]
 
