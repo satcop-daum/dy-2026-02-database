@@ -6,8 +6,8 @@ import urllib.parse
 import urllib.request
 import mysql.connector
 
-from config_api import KOBIS_API_KEY
-from config_db import DB_CONFIG
+from get_sample_db.config_api import KOBIS_API_KEY
+from get_sample_db.config_db import DB_CONFIG
 
 # 영화목록 API
 KOBIS_MOVIE_LIST_URL = "https://www.kobis.or.kr/kobisopenapi/webservice/rest/movie/searchMovieList.json"
